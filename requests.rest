@@ -1,0 +1,37 @@
+
+POST http://localhost:3000/user/register
+Content-Type: application/json
+
+{
+    "first_name": "Mark",
+    "last_name": "Wood",
+    "email": "markwood@m.com",
+    "password": "1234"
+}
+
+###
+
+POST http://localhost:3000/user/login
+Content-Type: application/json
+
+{
+    "email": "markwood@m.com",
+    "password": "1234"
+}
+
+###
+
+GET http://localhost:3000/user/doSomeWork
+Authorization: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiI2MWFhMGJmNjIxZTgxODMyYzgxNGJlMzIiLCJpYXQiOjE2Mzg1NTAzODYsImV4cCI6MTYzODU1MDQxNn0.M70vmnbBZpOaLZNojff4MkZeQlPEqgsl02Fo3-ezJDg
+Content-Type: application/json
+
+###
+POST http://localhost:3000/user/refreshToken
+Content-Type: application/json
+
+{
+    "userId": "61aa0bf621e81832c814be32",
+    "refreshToken": "03cb4368-2ef9-438d-ab95-d77829785b80"
+}
+
+

@@ -1,9 +1,9 @@
 const express = require('express');
 const router = express.Router();
 const bcrypt = require("bcryptjs");
-const jwt = require("jsonwebtoken");
 const auth = require("../middleware/auth");
-const { v4: uuidv4 } = require('uuid');
+
+const jwtHelper = require("../util/jwt_helper");
 
 const User = require("../model/user_model");
 const UserToken = require("../model/userToken_model");
@@ -42,14 +42,9 @@ router.post('/login', async (req, res) => {
         const isPasswordMatched = await bcrypt.compare(password, user.password);
         if (user) {
             if (isPasswordMatched) {
-                const token = jwt.sign(
-                    { userId: user._id },
-                    process.env.TOKEN_KEY,
-                    { expiresIn: "30s" }
-                );
-
+                const token = await jwtHelper.generateAccessToken(user._id)
                 user.token = token;
-                const refToken = uuidv4()
+                const refToken = await jwtHelper.generateRefreshToken(user._id)
                 await UserToken.create({
                     userId: user._id,
                     refreshToken: refToken,
@@ -77,20 +72,33 @@ router.get('/doSomeWork', auth, (req, res) => {
 
 
 router.post('/refreshToken', async (req, res) => {
-    const token_object = await UserToken.find({ userId: req.body.userId }).sort({ createdAt: -1 }).limit(1);
-    console.log(token_object)
-    if (token_object.length == 0) {
-        res.send("Refresh token does not exist")
-    } else {
-        const refreshToken = token_object[0].refreshToken;
-        if (refreshToken == req.body.refreshToken) {
-            const token = jwt.sign(
-                { userId: req.body.userId },
-                process.env.TOKEN_KEY,
-                { expiresIn: "30s" }
-            );
-            res.json({ token: token })
+    try {
+        const payload = await jwtHelper.verifyRefreshToken(req.body.refreshToken);
+        const token_object = await UserToken.find({ userId: payload.userId }).sort({ createdAt: -1 }).limit(1);
+        if (token_object.length == 0) {
+            res.send("Refresh token does not exist")
+        } else {
+            const refreshToken = token_object[0].refreshToken;
+            if (refreshToken == req.body.refreshToken) {
+                const token = await jwtHelper.generateAccessToken(payload.userId);
+                const refToken = await jwtHelper.generateRefreshToken(payload.userId);
+                await UserToken.findOneAndUpdate({ _id: token_object[0]._id }, { $set: { refreshToken: refToken } }, { useFindAndModify: false });
+                res.json({ token: token, refreshToken: refToken })
+            } else {
+                res.send("Old refresh token")
+            }
         }
+    } catch (err) {
+        res.send(err)
+    }
+});
+
+router.post('/logout', async (req, res) => {
+    try {
+        const deleted = await UserToken.findOneAndRemove({ userId: req.body.userId })
+        console.log(deleted)
+    } catch (err) {
+        console.log(err)
     }
 });
 

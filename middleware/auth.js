@@ -11,7 +11,7 @@ module.exports = (req, res, next) => {
         req.user = decoded
         //console.log(req.user)
     } catch (err) {
-        console.log(err)
+        //console.log(err)
         return res.status(401).send(err.message);
     }
     return next()
